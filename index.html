@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pronunciation & Linking Checker</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-sub: #64748b;
+      --ok-bg: #dcfce7;
+      --ok-text: #15803d;
+      --ok-border: #86efac;
+      --warn-bg: #fef9c3;
+      --warn-text: #a16207;
+      --warn-border: #fde047;
+      --ng-bg: #fee2e2;
+      --ng-text: #b91c1c;
+      --ng-border: #fca5a5;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 16px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .icon-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* 設定パネル */
+    .settings-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: none;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .settings-panel.open {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-sub);
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    .form-help {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    /* モード切替タブ */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: #e2e8f0;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* メインカード */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .category-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .target-sentence {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .target-ja {
+      font-size: 0.95rem;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+
+    .hint-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 20px;
+    }
+
+    /* フリー入力欄 */
+    .free-input-area {
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .free-input-area.active {
+      display: block;
+    }
+
+    .free-textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1.1rem;
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    /* コントロールボタン群 */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-record {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-record.recording {
+      background: #dc2626;
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* 判定結果エリア */
+    .result-card {
+      display: none;
+    }
+
+    .result-card.active {
+      display: block;
+    }
+
+    .score-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .score-badge {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .heard-text {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+    }
+
+    /* 単語＆リンキングのインタラクティブ表示 */
+    .interactive-Breakdown {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .word-chip {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .word-chip.correct {
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      border-color: var(--ok-border);
+    }
+
+    .word-chip.needs_work {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border-color: var(--warn-border);
+    }
+
+    .word-chip.poor {
+      background: var(--ng-bg);
+      color: var(--ng-text);
+      border-color: var(--ng-border);
+    }
+
+    .word-chip.selected, .link-chip.selected {
+      outline: 3px solid var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .link-chip {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      border: 1px dashed var(--border);
+      background: #fff;
+      color: var(--text-sub);
+      transition: all 0.15s;
+    }
+
+    .link-chip.natural {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #7dd3fc;
+    }
+
+    .link-chip.disconnected {
+      background: #ffedd5;
+      color: #c2410c;
+      border: 1px solid #fdba74;
+    }
+
+    /* 詳細ポップアップボックス */
+    .detail-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+      font-size: 0.92rem;
+    }
+
+    .detail-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1e3a8a;
+    }
+
+    .general-advice {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 0.92rem;
+    }
+
+    .status-msg {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      margin: 12px 0;
+    }
+
+    .audio-playback {
+      margin-top: 12px;
+      width: 100%;
+      height: 36px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🎙️ 英語発音＆リンキング判定</h1>
+    <button class="icon-btn" id="toggleSettingsBtn">⚙️ 設定 / シート連携</button>
+  </header>
+
+  <!-- 設定エリア -->
+  <div class="settings-panel" id="settingsPanel">
+    <div class="form-group">
+      <label for="apiKeyInput">Gemini API キー（必須・ブラウザ内のみに保存）</label>
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+      <div class="form-help">※Google AI Studioで発行した無料枠のAPIキーを入力してください。</div>
+    </div>
+    <div class="form-group">
+      <label for="modelSelect">使用モデル</label>
+      <select id="modelSelect">
+        <option value="gemini-2.5-flash" selected>gemini-2.5-flash（推奨・高精度＆高速）</option>
+        <option value="gemini-1.5-flash">gemini-1.5-flash（代替用）</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="csvUrlInput">Googleスプレッドシート CSV公開URL（任意）</label>
+      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" />
+      <div class="form-help">
+        スプレッドシートの「ファイル ＞ 共有 ＞ ウェブに公開」で「カンマ区切り形式 (.csv)」を選びURLを貼ると、自作例文を読み込みます（1列目:英文, 2列目:和訳, 3列目:発音ヒント, 4列目:カテゴリ）。空欄の場合は内蔵例文を使用します。
+      </div>
+    </div>
+    <button class="btn btn-primary" id="saveSettingsBtn">設定を保存して反映</button>
+  </div>
+
+  <!-- モード切替タブ -->
+  <div class="tabs">
+    <button class="tab active" id="tabQuiz">🎲 一問一答モード（ランダム）</button>
+    <button class="tab" id="tabFree">✍️ 自由入力モード</button>
+  </div>
+
+  <!-- 出題＆録音メインカード -->
+  <div class="card">
+    <!-- 一問一答表示エリア -->
+    <div id="quizDisplayArea">
+      <span class="category-badge" id="sentenceCategory">日常・リンキング</span>
+      <div class="target-sentence" id="targetSentence">Let me check it out for you.</div>
+      <div class="target-ja" id="targetJa">私が確認してみますね。</div>
+      <div class="hint-box" id="targetHint">💡 ポイント: Let me (レミー)、check it out (チェキラウッ) の連結と語末tの脱落</div>
+    </div>
+
+    <!-- 自由入力エリア -->
+    <div class="free-input-area" id="freeInputArea">
+      <label style="font-size:0.85rem; font-weight:600; color:var(--text-sub); display:block; margin-bottom:6px;">
+        練習したい単語や英文を入力してください：
+      </label>
+      <textarea class="free-textarea" id="customSentenceInput" placeholder="例: I really appreciate your patience."></textarea>
+    </div>
+
+    <!-- 操作ボタン -->
+    <div class="controls">
+      <div class="btn-group">
+        <button class="btn btn-record" id="recordBtn">🎤 録音スタート</button>
+        <button class="btn btn-secondary" id="speakModelBtn">🔊 お手本を聞く</button>
+      </div>
+      <div class="btn-group" id="quizNavGroup">
+        <button class="btn btn-secondary" id="nextQuestionBtn">次の問題へ ➔</button>
+      </div>
+    </div>
+
+    <audio id="userAudioPlayback" class="audio-playback" controls style="display:none;"></audio>
+    <div class="status-msg" id="statusMsg">マイクボタンを押して英文を読み上げてください（録音終了と同時にAI判定します）</div>
+  </div>
+
+  <!-- 判定結果カード -->
+  <div class="card result-card" id="resultCard">
+    <div class="score-header">
+      <div>
+        <div style="font-size:0.85rem; color:var(--text-sub); font-weight:600;">総合スコア</div>
+        <div class="score-badge" id="overallScore">--</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size:0.8rem; color:var(--text-sub);">AIが聞き取った音</div>
+        <div class="heard-text" id="fullHeardAs">--</div>
+      </div>
+    </div>
+
+    <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:6px;">
+      👇 <strong>単語</strong> または <strong>つながり記号（🔗 / ⚡）</strong> をタップすると詳細アドバイスが表示されます
+    </div>
+
+    <!-- 単語＆リンキングのチップ並び -->
+    <div class="interactive-Breakdown" id="breakdownContainer"></div>
+
+    <!-- タップ詳細表示枠 -->
+    <div class="detail-box" id="detailBox">
+      <div class="detail-title" id="detailTitle">気になる単語や連結マークをタップしてください</div>
+      <div id="detailContent">各単語の発音精度や、単語同士の音のつながり（リンキング・脱落）の具体的な改善ポイントがここに表示されます。</div>
+    </div>
+
+    <!-- 全体講評 -->
+    <div class="general-advice">
+      <strong>📝 全体アドバイス・口の動かし方のコツ：</strong>
+      <div id="generalAdviceText" style="margin-top:4px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- 内蔵プリセット例文（API消費ゼロ） ---
+    const DEFAULT_SENTENCES = [
+      {
+        en: "Let me check it out for you.",
+        ja: "私がそれを確認してみますね。",
+        hint: "Let me (レミー)、check it out (チェキラウッ) の連結とtのフラッピング",
+        category: "日常・サポート"
+      },
+      {
+        en: "I really appreciate your patience.",
+        ja: "お待ちいただきありがとうございます（ご辛抱に感謝します）。",
+        hint: "appreciate の sh の摩擦音、patience の二重母音 ei",
+        category: "カスタマーサポート"
+      },
+      {
+        en: "Could you tell me a little bit about it?",
+        ja: "それについて少し教えていただけますか？",
+        hint: "Could you (クッジュー) の同化、little bit about it (リルビッ・アバウリッ) のフラッピング",
+        category: "日常・質問"
+      },
+      {
+        en: "I'll get back to you as soon as possible.",
+        ja: "分かり次第すぐに折り返しご連絡します。",
+        hint: "get back の t の脱落（ゲッバック）、as soon as (アズスーナズ) の連結",
+        category: "カスタマーサポート"
+      },
+      {
+        en: "What are you going to do this weekend?",
+        ja: "今週末は何をする予定ですか？",
+        hint: "What are you (ワダユー / ワッチャ)、going to (ガナ) のリダクション",
+        category: "日常会話"
+      },
+      {
+        en: "We apologize for the inconvenience caused.",
+        ja: "ご不便をおかけして申し訳ございません。",
+        hint: "apologize のアクセント位置、inconvenience の v の下唇の摩擦",
+        category: "カスタマーサポート"
+      },
+      {
+        en: "It turns out that we don't need it anymore.",
+        ja: "結局、それはもう必要ないことが分かりました。",
+        hint: "turns out (ターンザウッ) の連結、don't need の t の脱落（ドンニーディッ）",
+        category: "日常会話"
+      }
+    ];
+
+    // --- 状態管理 ---
+    let sentenceList = [...DEFAULT_SENTENCES];
+    let currentSentenceIndex = 0;
+    let currentMode = "quiz"; // "quiz" or "free"
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    // --- DOM要素 ---
+    const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const modelSelect = document.getElementById("modelSelect");
+    const csvUrlInput = document.getElementById("csvUrlInput");
+    const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+
+    const tabQuiz = document.getElementById("tabQuiz");
+    const tabFree = document.getElementById("tabFree");
+    const quizDisplayArea = document.getElementById("quizDisplayArea");
+    const freeInputArea = document.getElementById("freeInputArea");
+    const quizNavGroup = document.getElementById("quizNavGroup");
+
+    const sentenceCategory = document.getElementById("sentenceCategory");
+    const targetSentence = document.getElementById("targetSentence");
+    const targetJa = document.getElementById("targetJa");
+    const targetHint = document.getElementById("targetHint");
+    const customSentenceInput = document.getElementById("customSentenceInput");
+
+    const recordBtn = document.getElementById("recordBtn");
+    const speakModelBtn = document.getElementById("speakModelBtn");
+    const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    const userAudioPlayback = document.getElementById("userAudioPlayback");
+
+    const resultCard = document.getElementById("resultCard");
+    const overallScore = document.getElementById("overallScore");
+    const fullHeardAs = document.getElementById("fullHeardAs");
+    const breakdownContainer = document.getElementById("breakdownContainer");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailContent = document.getElementById("detailContent");
+    const generalAdviceText = document.getElementById("generalAdviceText");
+
+    // --- 初期化 ---
+    window.addEventListener("DOMContentLoaded", async () => {
+      const savedKey = localStorage.getItem("gemini_api_key") || "";
+      const savedModel = localStorage.getItem("gemini_model") || "gemini-2.5-flash";
+      const savedCsv = localStorage.getItem("sheet_csv_url") || "";
+
+      apiKeyInput.value = savedKey;
+      modelSelect.value = savedModel;
+      csvUrlInput.value = savedCsv;
+
+      if (!savedKey) {
+        settingsPanel.classList.add("open");
+      }
+
+      if (savedCsv) {
+        await loadSentencesFromCSV(savedCsv);
+      }
+      pickRandomSentence();
+    });
+
+    // 設定パネル開閉・保存
+    toggleSettingsBtn.addEventListener("click", () => {
+      settingsPanel.classList.toggle("open");
+    });
+
+    saveSettingsBtn.addEventListener("click", async () => {
+      localStorage.setItem("gemini_api_key", apiKeyInput.value.trim());
+      localStorage.setItem("gemini_model", modelSelect.value);
+      const csvUrl = csvUrlInput.value.trim();
+      localStorage.setItem("sheet_csv_url", csvUrl);
+
+      if (csvUrl) {
+        await loadSentencesFromCSV(csvUrl);
+      } else {
+        sentenceList = [...DEFAULT_SENTENCES];
+      }
+      settingsPanel.classList.remove("open");
+      pickRandomSentence();
+    });
+
+    // CSV（Googleスプレッドシート）読み込み
+    async function loadSentencesFromCSV(url) {
+      try {
+        statusMsg.textContent = "スプレッドシートから例文を読み込み中...";
+        const res = await fetch(url);
+        const csvText = await res.text();
+        const rows = parseCSV(csvText);
+        const loaded = [];
+        // 1行目がヘッダーの場合はスキップ判定
+        const startIdx = (rows[0] && rows[0][0].toLowerCase().includes("en")) || (rows[0] && rows[0][0].includes("英文")) ? 1 : 0;
+        for (let i = startIdx; i < rows.length; i++) {
+          const r = rows[i];
+          if (r[0] && r[0].trim()) {
+            loaded.push({
+              en: r[0].trim(),
+              ja: (r[1] || "").trim(),
+              hint: (r[2] || "音のつながりとリズムを意識して発音しましょう").trim(),
+              category: (r[3] || "マイリスト").trim()
+            });
+          }
+        }
+        if (loaded.length > 0) {
+          sentenceList = loaded;
+          statusMsg.textContent = `スプレッドシートから ${loaded.length} 件の例文を読み込みました！`;
+        }
+      } catch (e) {
+        console.error(e);
+        statusMsg.textContent = "CSVの読み込みに失敗したため、内蔵リストを使用します。";
+      }
+    }
+
+    // 簡易CSVパーサー
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/);
+      return lines.map(line => {
+        const result = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            inQuotes = !inQuotes;
+          } else if (ch === ',' && !inQuotes) {
+            result.push(cur);
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+        result.push(cur);
+        return result;
+      });
+    }
+
+    // モード切替
+    tabQuiz.addEventListener("click", () => {
+      currentMode = "quiz";
+      tabQuiz.classList.add("active");
+      tabFree.classList.remove("active");
+      quizDisplayArea.style.display = "block";
+      freeInputArea.classList.remove("active");
+      quizNavGroup.style.display = "flex";
+      resultCard.classList.remove("active");
+    });
+
+    tabFree.addEventListener("click", () => {
+      currentMode = "free";
+      tabFree.classList.add("active");
+      tabQuiz.classList.remove("active");
+      quizDisplayArea.style.display = "none";
+      freeInputArea.classList.add("active");
+      quizNavGroup.style.display = "none";
+      resultCard.classList.remove("active");
+    });
+
+    // ランダム出題（同じ問題が連続しないように配慮）
+    function pickRandomSentence() {
+      if (sentenceList.length === 0) return;
+      let nextIdx = Math.floor(Math.random() * sentenceList.length);
+      if (sentenceList.length > 1 && nextIdx === currentSentenceIndex) {
+        nextIdx = (nextIdx + 1) % sentenceList.length;
+      }
+      currentSentenceIndex = nextIdx;
+      const item = sentenceList[currentSentenceIndex];
+      sentenceCategory.textContent = item.category || "練習フレーズ";
+      targetSentence.textContent = item.en;
+      targetJa.textContent = item.ja;
+      targetHint.textContent = `💡 ポイント: ${item.hint}`;
+      resultCard.classList.remove("active");
+      userAudioPlayback.style.display = "none";
+    }
+
+    nextQuestionBtn.addEventListener("click", pickRandomSentence);
+
+    // 現在の対象テキストを取得
+    function getActiveTargetText() {
+      if (currentMode === "quiz") {
+        return sentenceList[currentSentenceIndex].en;
+      } else {
+        return customSentenceInput.value.trim();
+      }
+    }
+
+    // お手本音声の再生（ブラウザ標準TTS・API消費ゼロ）
+    speakModelBtn.addEventListener("click", () => {
+      const text = getActiveTargetText();
+      if (!text) {
+        alert("読み上げる英文を入力してください。");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-US";
+      utter.rate = 0.95;
+      window.speechSynthesis.speak(utter);
+    });
+
+    // --- 録音処理 ---
+    recordBtn.addEventListener("click", async () => {
+      const targetText = getActiveTargetText();
+      if (!targetText) {
+        alert("練習したい英文を入力してください。");
+        return;
+      }
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        alert("右上の「⚙️ 設定」からGemini APIキーを設定してください。");
+        settingsPanel.classList.add("open");
+        return;
+      }
+
+      if (!isRecording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    });
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const mimeType = mediaRecorder.mimeType || "audio/webm";
+          const audioBlob = new Blob(audioChunks, { type: mimeType });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          userAudioPlayback.src = audioUrl;
+          userAudioPlayback.style.display = "block";
+
+          // マイクストリーム停止
+          stream.getTracks().forEach(track => track.stop());
+
+          // Gemini APIで発音チェック実行
+          await evaluatePronunciation(audioBlob, mimeType);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        recordBtn.textContent = "⏹️ 録音ストップ（判定へ）";
+        recordBtn.classList.add("recording");
+        statusMsg.textContent = "🎙️ 録音中... はっきりと、自然な繋がりを意識して読んでください";
+        resultCard.classList.remove("active");
+      } catch (err) {
+        console.error(err);
+        alert("マイクへのアクセスが許可されていないか、利用できません。");
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.textContent = "🎤 録音スタート";
+        recordBtn.classList.remove("recording");
+      }
+    }
+
+    // BlobをBase64文字列に変換
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result.split(",")[1];
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // --- Gemini API 呼び出し ---
+    async function evaluatePronunciation(audioBlob, mimeType) {
+      const apiKey = apiKeyInput.value.trim();
+      const model = modelSelect.value;
+      const targetText = getActiveTargetText();
+
+      statusMsg.textContent = "🔍 Geminiが発音と音のつながり（リンキング・脱落）を分析中...";
+      recordBtn.disabled = true;
+
+      try {
+        const base64Audio = await blobToBase64(audioBlob);
+        // mimeTypeからコーデック記述(;codecs=opus等)を除去してシンプルにする
+        const cleanMimeType = mimeType.split(";")[0] || "audio/webm";
+
+        const systemPrompt = `あなたは日本人英語学習者専属の高度な英語発音＆音声変化（リンキング・リダクション・フラッピング・脱落）コーチです。
+ユーザーが「お手本テキスト」を読み上げた音声データを聞き、以下の観点で厳密かつ温かく分析し、指定されたJSONフォーマットのみで出力してください。
+
+【評価のポイント】
+1. 単語ごとの発音精度（words）:
+   - お手本テキストの単語を順番通りにすべて配列に入れてください。
+   - 子音と母音の正確さ、L/R、TH、F/V、sh/s などの区別、強勢（アクセント）の位置を判定。
+   - statusは "correct"（自然で通じる）、"needs_work"（惜しい・ややカタカナや別音に近い）、"poor"（別の単語に聞こえる・聞き取れない）の3段階。
+2. 単語間の音のつながり・脱落（sound_connections）:
+   - 隣り合う単語の間で、ネイティブらしい音声変化（子音＋母音のリンキング、破裂音t/d/p/k等の脱落・リダクション、t/dのラ行化フラッピング、同化など）が起きるべき箇所を抽出し評価してください。
+   - from_index には前の単語のインデックス番号（0始まり）を指定してください（例: 0番目の単語と1番目の単語の間のつながりなら from_index: 0）。
+   - statusは "natural"（自然につながっている／適切に音が抜けている）または "disconnected"（ブツ切りになっている／余計な母音が入っている）。
+   - phonetic_guide には「チェキラウッ」「グッモーニン」のように意識すべき音の繋がり方を分かりやすく記載してください。
+3. アドバイスはすべて日本語で、「舌をどこに当てるか」「息をどう止めるか」「どう音を繋げるか」など具体的に書いてください。`;
+
+        const responseSchema = {
+          type: "OBJECT",
+          properties: {
+            overall_score: { type: "INTEGER", description: "0〜100の総合発音スコア" },
+            full_heard_as: { type: "STRING", description: "AIに実際に聞こえた英語またはカタカナ近似の書き起こし" },
+            words: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  word: { type: "STRING" },
+                  status: { type: "STRING", enum: ["correct", "needs_work", "poor"] },
+                  heard_as: { type: "STRING", description: "どう聞こえたか（例: sink / アプリシエイト）" },
+                  feedback: { type: "STRING", description: "その単語の発音に対する具体的な日本語アドバイス" }
+                },
+                required: ["word", "status", "heard_as", "feedback"]
+              }
+            },
+            sound_connections: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  from_index: { type: "INTEGER", description: "前の単語のインデックス（0始まり）" },
+                  between_words: { type: "STRING", description: "例: check it" },
+                  type: { type: "STRING", description: "linking / reduction / flapping / assimilation" },
+                  status: { type: "STRING", enum: ["natural", "disconnected"] },
+                  phonetic_guide: { type: "STRING", description: "理想的な音の繋がり（例: チェキッ）" },
+                  feedback: { type: "STRING", description: "音の繋がりに関する具体的な日本語フィードバック" }
+                },
+                required: ["from_index", "between_words", "type", "status", "phonetic_guide", "feedback"]
+              }
+            },
+            general_advice: { type: "STRING", description: "全体のリズム・イントネーション・改善の最重要ポイント" }
+          },
+          required: ["overall_score", "full_heard_as", "words", "sound_connections", "general_advice"]
+        };
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const payload = {
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: `お手本テキスト: "${targetText}"\nこの音声の発音と単語間の音のつながりを判定してください。` },
+                {
+                  inlineData: {
+                    mimeType: cleanMimeType,
+                    data: base64Audio
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+            temperature: 0.2
+          }
+        };
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error?.message || `HTTP Error ${response.status}`);
+        }
+
+        const data = await response.json();
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!jsonText) throw new Error("AIからの解析結果が空でした。もう一度録音してお試しください。");
+
+        const result = JSON.parse(jsonText);
+        renderResult(result);
+        statusMsg.textContent = "✅ 判定完了！気になる単語や連結マークをタップして確認しましょう。";
+
+      } catch (err) {
+        console.error(err);
+        statusMsg.textContent = `❌ エラーが発生しました: ${err.message}`;
+      } finally {
+        recordBtn.disabled = false;
+      }
+    }
+
+    // --- 結果の描画 ---
+    function renderResult(data) {
+      resultCard.classList.add("active");
+      overallScore.textContent = `${data.overall_score} 点`;
+      fullHeardAs.textContent = data.full_heard_as || "--";
+      generalAdviceText.textContent = data.general_advice || "";
+
+      breakdownContainer.innerHTML = "";
+
+      // つながり情報を from_index で引けるようにMap化
+      const connectionMap = new Map();
+      if (Array.isArray(data.sound_connections)) {
+        data.sound_connections.forEach(conn => {
+          connectionMap.set(conn.from_index, conn);
+        });
+      }
+
+      let firstIssueElement = null;
+
+      data.words.forEach((wObj, idx) => {
+        // 1. 単語チップ作成
+        const wSpan = document.createElement("span");
+        wSpan.className = `word-chip ${wObj.status}`;
+        wSpan.textContent = wObj.word;
+
+        wSpan.addEventListener("click", () => {
+          clearSelectedChips();
+          wSpan.classList.add("selected");
+          const statusLabel = wObj.status === "correct" ? "⭕ クリアな発音" : (wObj.status === "needs_work" ? "🔺 あと一歩" : "❌ 要改善");
+          detailTitle.textContent = `単語: "${wObj.word}" 【${statusLabel}】 (聞こえた音: ${wObj.heard_as})`;
+          detailContent.textContent = wObj.feedback;
+        });
+
+        breakdownContainer.appendChild(wSpan);
+
+        if (!firstIssueElement && wObj.status !== "correct") {
+          firstIssueElement = wSpan;
+        }
+
+        // 2. 次の単語との間にリンキング・脱落情報があればチップを挟む
+        if (connectionMap.has(idx)) {
+          const conn = connectionMap.get(idx);
+          const lSpan = document.createElement("span");
+          lSpan.className = `link-chip ${conn.status}`;
+          lSpan.textContent = conn.status === "natural" ? `🔗 ${conn.phonetic_guide}` : `⚡ ${conn.phonetic_guide}`;
+          lSpan.title = `${conn.between_words} のつながり`;
+
+          lSpan.addEventListener("click", () => {
+            clearSelectedChips();
+            lSpan.classList.add("selected");
+            const connStatus = conn.status === "natural" ? "🔗 自然なつながり！" : "⚡ 音が途切れています";
+            detailTitle.textContent = `音のつながり: "${conn.between_words}" 【${connStatus}】 (目安: ${conn.phonetic_guide})`;
+            detailContent.textContent = conn.feedback;
+          });
+
+          breakdownContainer.appendChild(lSpan);
+
+          if (!firstIssueElement && conn.status === "disconnected") {
+            firstIssueElement = lSpan;
+          }
+        }
+      });
+
+      // 要改善の箇所があれば自動的に最初の1つを選択表示しておく
+      if (firstIssueElement) {
+        firstIssueElement.click();
+      } else if (breakdownContainer.firstChild) {
+        breakdownContainer.firstChild.click();
+      }
+    }
+
+    function clearSelectedChips() {
+      document.querySelectorAll(".word-chip.selected, .link-chip.selected").forEach(el => {
+        el.classList.remove("selected");
+      });
+    }
+  </script>
+</body>
+</html>
