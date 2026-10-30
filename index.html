@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pronunciation & Linking Checker</title>
+  <title>Pronunciation & Linking Coach</title>
   <style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
+      --accent: #059669;
       --bg: #f8fafc;
       --card: #ffffff;
       --text: #1e293b;
@@ -36,7 +37,7 @@
       color: var(--text);
       line-height: 1.6;
       padding: 16px;
-      max-width: 760px;
+      max-width: 780px;
       margin: 0 auto;
     }
 
@@ -59,7 +60,8 @@
       padding: 8px 12px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.875rem;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--text);
       transition: background 0.15s;
     }
@@ -139,7 +141,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 24px;
+      padding: 22px;
       margin-bottom: 16px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
@@ -156,7 +158,7 @@
     }
 
     .target-sentence {
-      font-size: 1.6rem;
+      font-size: 1.55rem;
       font-weight: 700;
       margin-bottom: 8px;
       line-height: 1.35;
@@ -176,7 +178,7 @@
       font-size: 0.85rem;
       color: var(--text-sub);
       border-radius: 0 6px 6px 0;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     /* フリー入力欄 */
@@ -214,19 +216,20 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .btn {
-      padding: 10px 18px;
+      padding: 10px 16px;
       border-radius: 999px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 600;
       border: none;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: transform 0.1s, opacity 0.2s;
+      transition: transform 0.1s, opacity 0.2s, background 0.15s;
     }
 
     .btn:active {
@@ -248,6 +251,16 @@
       animation: pulse 1.4s infinite;
     }
 
+    .btn-judge {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+    }
+
+    .btn-judge:hover {
+      background: #047857;
+    }
+
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
       70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
@@ -265,6 +278,36 @@
       color: white;
     }
 
+    .audio-preview-area {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .audio-preview-area.active {
+      display: flex;
+    }
+
+    .audio-playback {
+      flex: 1;
+      min-width: 200px;
+      height: 36px;
+    }
+
+    .status-msg {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      margin-top: 12px;
+      font-weight: 500;
+    }
+
     /* 判定結果エリア */
     .result-card {
       display: none;
@@ -276,22 +319,66 @@
 
     .score-header {
       display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 16px;
-      padding-bottom: 12px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
     }
 
+    .score-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
     .score-badge {
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: 800;
       color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .comm-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      border: 1px solid var(--ok-border);
     }
 
     .heard-text {
-      font-size: 0.9rem;
+      font-size: 0.92rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* 3つの要点サマリー */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pillar-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+    }
+
+    .pillar-title {
+      font-weight: 700;
       color: var(--text-sub);
+      margin-bottom: 4px;
+      font-size: 0.78rem;
     }
 
     /* 単語＆リンキングのインタラクティブ表示 */
@@ -309,12 +396,22 @@
     .word-chip {
       padding: 6px 12px;
       border-radius: 8px;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 600;
       cursor: pointer;
       border: 2px solid transparent;
       transition: all 0.15s;
       user-select: none;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .word-ipa-sub {
+      font-size: 0.7rem;
+      font-weight: 400;
+      opacity: 0.85;
+      margin-top: 1px;
     }
 
     .word-chip.correct {
@@ -341,9 +438,9 @@
     }
 
     .link-chip {
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 999px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
       user-select: none;
@@ -365,41 +462,52 @@
       border: 1px solid #fdba74;
     }
 
-    /* 詳細ポップアップボックス */
+    /* 詳細ポップアップボックス（IPA表示付き） */
     .detail-box {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       border-radius: 10px;
       padding: 14px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       font-size: 0.92rem;
     }
 
     .detail-title {
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       color: #1e3a8a;
+      font-size: 1rem;
     }
 
-    .general-advice {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 0.92rem;
+    .ipa-compare {
+      display: inline-flex;
+      gap: 12px;
+      background: #ffffff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #dbeafe;
+      margin-bottom: 8px;
+      font-family: "Lucida Sans Unicode", "Arial Unicode MS", monospace;
+      font-size: 0.95rem;
     }
 
-    .status-msg {
-      text-align: center;
-      font-size: 0.9rem;
-      color: var(--text-sub);
-      margin: 12px 0;
-    }
+    .ipa-target { color: #15803d; font-weight: 700; }
+    .ipa-actual { color: #b91c1c; font-weight: 700; }
 
-    .audio-playback {
+    /* 採点基準アコーディオン */
+    details.criteria-box {
       margin-top: 12px;
-      width: 100%;
-      height: 36px;
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    details.criteria-box summary {
+      cursor: pointer;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -415,20 +523,20 @@
     <div class="form-group">
       <label for="apiKeyInput">Gemini API キー（必須・ブラウザ内のみに保存）</label>
       <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
-      <div class="form-help">※Google AI Studioで発行した無料枠のAPIキーを入力してください。</div>
+      <div class="form-help">※Google AI Studioで発行したAPIキーを入力してください。</div>
     </div>
     <div class="form-group">
-      <label for="modelSelect">使用モデル</label>
+      <label for="modelSelect">優先使用するモデル（混雑時は自動で別モデルへ切り替わります）</label>
       <select id="modelSelect">
-        <option value="gemini-2.5-flash" selected>gemini-2.5-flash（推奨・高精度＆高速）</option>
-        <option value="gemini-1.5-flash">gemini-1.5-flash（代替用）</option>
+        <option value="gemini-2.5-flash" selected>gemini-2.5-flash（推奨・思考オフ高速モード）</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash（超高速・混雑に強い）</option>
       </select>
     </div>
     <div class="form-group">
-      <label for="csvUrlInput">Googleスプレッドシート CSV公開URL（任意）</label>
-      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" />
+      <label for="csvUrlInput">Googleスプレッドシート URL または CSV公開URL（任意）</label>
+      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
       <div class="form-help">
-        スプレッドシートの「ファイル ＞ 共有 ＞ ウェブに公開」で「カンマ区切り形式 (.csv)」を選びURLを貼ると、自作例文を読み込みます（1列目:英文, 2列目:和訳, 3列目:発音ヒント, 4列目:カテゴリ）。空欄の場合は内蔵例文を使用します。
+        「ウェブに公開（CSV）」のURL、または「リンクを知っている全員が閲覧可」にしたスプレッドシートのURLを貼ってください。
       </div>
     </div>
     <button class="btn btn-primary" id="saveSettingsBtn">設定を保存して反映</button>
@@ -442,7 +550,6 @@
 
   <!-- 出題＆録音メインカード -->
   <div class="card">
-    <!-- 一問一答表示エリア -->
     <div id="quizDisplayArea">
       <span class="category-badge" id="sentenceCategory">日常・リンキング</span>
       <div class="target-sentence" id="targetSentence">Let me check it out for you.</div>
@@ -450,7 +557,6 @@
       <div class="hint-box" id="targetHint">💡 ポイント: Let me (レミー)、check it out (チェキラウッ) の連結と語末tの脱落</div>
     </div>
 
-    <!-- 自由入力エリア -->
     <div class="free-input-area" id="freeInputArea">
       <label style="font-size:0.85rem; font-weight:600; color:var(--text-sub); display:block; margin-bottom:6px;">
         練習したい単語や英文を入力してください：
@@ -458,56 +564,89 @@
       <textarea class="free-textarea" id="customSentenceInput" placeholder="例: I really appreciate your patience."></textarea>
     </div>
 
-    <!-- 操作ボタン -->
+    <!-- 操作ボタン（録音・停止と判定を分離） -->
     <div class="controls">
       <div class="btn-group">
         <button class="btn btn-record" id="recordBtn">🎤 録音スタート</button>
-        <button class="btn btn-secondary" id="speakModelBtn">🔊 お手本を聞く</button>
+        <button class="btn btn-judge" id="judgeBtn" style="display:none;">🚀 この音声で判定する</button>
+        <button class="btn btn-secondary" id="speakModelBtn">🔊 お手本</button>
       </div>
       <div class="btn-group" id="quizNavGroup">
         <button class="btn btn-secondary" id="nextQuestionBtn">次の問題へ ➔</button>
       </div>
     </div>
 
-    <audio id="userAudioPlayback" class="audio-playback" controls style="display:none;"></audio>
-    <div class="status-msg" id="statusMsg">マイクボタンを押して英文を読み上げてください（録音終了と同時にAI判定します）</div>
+    <!-- 録音後の聞き返しエリア -->
+    <div class="audio-preview-area" id="audioPreviewArea">
+      <span style="font-size:0.82rem; font-weight:600; color:var(--text-sub);">🎧 録音プレビュー:</span>
+      <audio id="userAudioPlayback" class="audio-playback" controls></audio>
+    </div>
+
+    <div class="status-msg" id="statusMsg">「🎤 録音スタート」を押して英文を読み上げてください</div>
+
+    <details class="criteria-box">
+      <summary>📊 採点基準について（ネイティブ並みでなくても高得点が出ます）</summary>
+      <ul style="margin-top:6px; padding-left:18px; line-height:1.5;">
+        <li><strong>90〜100点（通じる度100%）:</strong> 英語話者に一発でクリアに伝わる発音。多少の日本人らしさがあっても、音素とリズムが正しければ90点以上になります。</li>
+        <li><strong>80〜89点（実用十分）:</strong> 意味は問題なく通じるレベル。リンキングや子音を少し整えるとさらに自然になる状態。</li>
+        <li><strong>70〜79点（文脈で通じる）:</strong> 別の単語に聞こえるリスクがある音（/r/と/l/、/θ/と/s/、母音のズレ等）が1〜2箇所ある状態。</li>
+      </ul>
+    </details>
   </div>
 
   <!-- 判定結果カード -->
   <div class="card result-card" id="resultCard">
     <div class="score-header">
-      <div>
-        <div style="font-size:0.85rem; color:var(--text-sub); font-weight:600;">総合スコア</div>
-        <div class="score-badge" id="overallScore">--</div>
+      <div class="score-left">
+        <div>
+          <div style="font-size:0.78rem; color:var(--text-sub); font-weight:600;">実用発音スコア</div>
+          <div class="score-badge" id="overallScore">--</div>
+        </div>
+        <span class="comm-badge" id="commBadge">--</span>
       </div>
       <div style="text-align: right;">
-        <div style="font-size:0.8rem; color:var(--text-sub);">AIが聞き取った音</div>
+        <div style="font-size:0.78rem; color:var(--text-sub);">AIが聞き取った英語</div>
         <div class="heard-text" id="fullHeardAs">--</div>
       </div>
     </div>
 
-    <div style="font-size:0.85rem; color:var(--text-sub); margin-bottom:6px;">
-      👇 <strong>単語</strong> または <strong>つながり記号（🔗 / ⚡）</strong> をタップすると詳細アドバイスが表示されます
+    <!-- 3つの要点フィードバック -->
+    <div class="pillars-grid">
+      <div class="pillar-box">
+        <div class="pillar-title">🎯 ① 致命的な音の間違い（音素）</div>
+        <div id="pillarSound">--</div>
+      </div>
+      <div class="pillar-box">
+        <div class="pillar-title">🔗 ② 音のつながり・脱落（リンキング）</div>
+        <div id="pillarLinking">--</div>
+      </div>
+      <div class="pillar-box">
+        <div class="pillar-title">💨 ③ 息の使い方・リズム</div>
+        <div id="pillarBreath">--</div>
+      </div>
+    </div>
+
+    <div style="font-size:0.84rem; color:var(--text-sub); margin-bottom:6px;">
+      👇 <strong>各単語（発音記号付き）</strong> や <strong>連結マーク（🔗 / ⚡）</strong> をタップすると詳しい口の動かし方を表示します
     </div>
 
     <!-- 単語＆リンキングのチップ並び -->
     <div class="interactive-Breakdown" id="breakdownContainer"></div>
 
-    <!-- タップ詳細表示枠 -->
+    <!-- タップ詳細表示枠（IPA対比つき） -->
     <div class="detail-box" id="detailBox">
       <div class="detail-title" id="detailTitle">気になる単語や連結マークをタップしてください</div>
-      <div id="detailContent">各単語の発音精度や、単語同士の音のつながり（リンキング・脱落）の具体的な改善ポイントがここに表示されます。</div>
-    </div>
-
-    <!-- 全体講評 -->
-    <div class="general-advice">
-      <strong>📝 全体アドバイス・口の動かし方のコツ：</strong>
-      <div id="generalAdviceText" style="margin-top:4px;"></div>
+      <div class="ipa-compare" id="ipaCompareBox" style="display:none;">
+        <span>目標の記号: <strong class="ipa-target" id="ipaTarget">--</strong></span>
+        <span>➔</span>
+        <span>聞こえた音: <strong class="ipa-actual" id="ipaActual">--</strong></span>
+      </div>
+      <div id="detailContent">各単語の発音記号（IPA）のズレや、リンキングの具体的なコツがここに表示されます。</div>
     </div>
   </div>
 
   <script>
-    // --- 内蔵プリセット例文（API消費ゼロ） ---
+    // --- 内蔵プリセット例文 ---
     const DEFAULT_SENTENCES = [
       {
         en: "Let me check it out for you.",
@@ -517,14 +656,14 @@
       },
       {
         en: "I really appreciate your patience.",
-        ja: "お待ちいただきありがとうございます（ご辛抱に感謝します）。",
-        hint: "appreciate の sh の摩擦音、patience の二重母音 ei",
+        ja: "お待ちいただきありがとうございます。",
+        hint: "appreciate の sh(/ʃ/) の摩擦音、patience の二重母音 /eɪ/",
         category: "カスタマーサポート"
       },
       {
         en: "Could you tell me a little bit about it?",
         ja: "それについて少し教えていただけますか？",
-        hint: "Could you (クッジュー) の同化、little bit about it (リルビッ・アバウリッ) のフラッピング",
+        hint: "Could you (クッジュー) の同化、little bit about it のフラッピング",
         category: "日常・質問"
       },
       {
@@ -536,30 +675,26 @@
       {
         en: "What are you going to do this weekend?",
         ja: "今週末は何をする予定ですか？",
-        hint: "What are you (ワダユー / ワッチャ)、going to (ガナ) のリダクション",
+        hint: "What are you (ワダユー)、going to (ガナ) のリダクション",
         category: "日常会話"
       },
       {
-        en: "We apologize for the inconvenience caused.",
-        ja: "ご不便をおかけして申し訳ございません。",
-        hint: "apologize のアクセント位置、inconvenience の v の下唇の摩擦",
-        category: "カスタマーサポート"
-      },
-      {
-        en: "It turns out that we don't need it anymore.",
-        ja: "結局、それはもう必要ないことが分かりました。",
-        hint: "turns out (ターンザウッ) の連結、don't need の t の脱落（ドンニーディッ）",
-        category: "日常会話"
+        en: "That makes a lot of sense.",
+        ja: "それすごく納得がいくよ。",
+        hint: "makes a (メイクサ)、lot of (ララヴ) の連結",
+        category: "日常・相づち"
       }
     ];
 
     // --- 状態管理 ---
     let sentenceList = [...DEFAULT_SENTENCES];
     let currentSentenceIndex = 0;
-    let currentMode = "quiz"; // "quiz" or "free"
+    let currentMode = "quiz";
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
+    let latestAudioBlob = null;
+    let latestMimeType = "audio/webm";
 
     // --- DOM要素 ---
     const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
@@ -582,18 +717,26 @@
     const customSentenceInput = document.getElementById("customSentenceInput");
 
     const recordBtn = document.getElementById("recordBtn");
+    const judgeBtn = document.getElementById("judgeBtn");
     const speakModelBtn = document.getElementById("speakModelBtn");
     const nextQuestionBtn = document.getElementById("nextQuestionBtn");
     const statusMsg = document.getElementById("statusMsg");
+    const audioPreviewArea = document.getElementById("audioPreviewArea");
     const userAudioPlayback = document.getElementById("userAudioPlayback");
 
     const resultCard = document.getElementById("resultCard");
     const overallScore = document.getElementById("overallScore");
+    const commBadge = document.getElementById("commBadge");
     const fullHeardAs = document.getElementById("fullHeardAs");
+    const pillarSound = document.getElementById("pillarSound");
+    const pillarLinking = document.getElementById("pillarLinking");
+    const pillarBreath = document.getElementById("pillarBreath");
     const breakdownContainer = document.getElementById("breakdownContainer");
     const detailTitle = document.getElementById("detailTitle");
+    const ipaCompareBox = document.getElementById("ipaCompareBox");
+    const ipaTarget = document.getElementById("ipaTarget");
+    const ipaActual = document.getElementById("ipaActual");
     const detailContent = document.getElementById("detailContent");
-    const generalAdviceText = document.getElementById("generalAdviceText");
 
     // --- 初期化 ---
     window.addEventListener("DOMContentLoaded", async () => {
@@ -608,14 +751,12 @@
       if (!savedKey) {
         settingsPanel.classList.add("open");
       }
-
       if (savedCsv) {
         await loadSentencesFromCSV(savedCsv);
       }
       pickRandomSentence();
     });
 
-    // 設定パネル開閉・保存
     toggleSettingsBtn.addEventListener("click", () => {
       settingsPanel.classList.toggle("open");
     });
@@ -635,16 +776,29 @@
       pickRandomSentence();
     });
 
-    // CSV（Googleスプレッドシート）読み込み
-    async function loadSentencesFromCSV(url) {
+    // スプレッドシート読み込み（通常のURL＆CSV公開URLの両対応）
+    async function loadSentencesFromCSV(rawUrl) {
       try {
         statusMsg.textContent = "スプレッドシートから例文を読み込み中...";
-        const res = await fetch(url);
+        let fetchUrl = rawUrl.trim();
+        if (!fetchUrl.includes("output=csv") && !fetchUrl.includes("/pub")) {
+          const sheetIdMatch = fetchUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+          if (sheetIdMatch) {
+            const sheetId = sheetIdMatch[1];
+            const gidMatch = fetchUrl.match(/gid=([0-9]+)/);
+            const gid = gidMatch ? gidMatch[1] : "0";
+            fetchUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+          }
+        }
+
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error("シート取得エラー");
         const csvText = await res.text();
         const rows = parseCSV(csvText);
         const loaded = [];
-        // 1行目がヘッダーの場合はスキップ判定
-        const startIdx = (rows[0] && rows[0][0].toLowerCase().includes("en")) || (rows[0] && rows[0][0].includes("英文")) ? 1 : 0;
+        const firstCol = (rows[0] && rows[0][0]) ? rows[0][0].toLowerCase() : "";
+        const startIdx = (firstCol.includes("en") || firstCol.includes("英文") || firstCol.includes("english")) ? 1 : 0;
+
         for (let i = startIdx; i < rows.length; i++) {
           const r = rows[i];
           if (r[0] && r[0].trim()) {
@@ -666,7 +820,6 @@
       }
     }
 
-    // 簡易CSVパーサー
     function parseCSV(text) {
       const lines = text.split(/\r?\n/);
       return lines.map(line => {
@@ -675,21 +828,16 @@
         let inQuotes = false;
         for (let i = 0; i < line.length; i++) {
           const ch = line[i];
-          if (ch === '"') {
-            inQuotes = !inQuotes;
-          } else if (ch === ',' && !inQuotes) {
-            result.push(cur);
-            cur = "";
-          } else {
-            cur += ch;
-          }
+          if (ch === '"') inQuotes = !inQuotes;
+          else if (ch === ',' && !inQuotes) { result.push(cur); cur = ""; }
+          else cur += ch;
         }
         result.push(cur);
         return result;
       });
     }
 
-    // モード切替
+    // タブ切替
     tabQuiz.addEventListener("click", () => {
       currentMode = "quiz";
       tabQuiz.classList.add("active");
@@ -697,7 +845,7 @@
       quizDisplayArea.style.display = "block";
       freeInputArea.classList.remove("active");
       quizNavGroup.style.display = "flex";
-      resultCard.classList.remove("active");
+      resetRecordingState();
     });
 
     tabFree.addEventListener("click", () => {
@@ -707,10 +855,18 @@
       quizDisplayArea.style.display = "none";
       freeInputArea.classList.add("active");
       quizNavGroup.style.display = "none";
-      resultCard.classList.remove("active");
+      resetRecordingState();
     });
 
-    // ランダム出題（同じ問題が連続しないように配慮）
+    function resetRecordingState() {
+      latestAudioBlob = null;
+      judgeBtn.style.display = "none";
+      audioPreviewArea.classList.remove("active");
+      resultCard.classList.remove("active");
+      recordBtn.textContent = "🎤 録音スタート";
+      statusMsg.textContent = "「🎤 録音スタート」を押して英文を読み上げてください";
+    }
+
     function pickRandomSentence() {
       if (sentenceList.length === 0) return;
       let nextIdx = Math.floor(Math.random() * sentenceList.length);
@@ -723,28 +879,18 @@
       targetSentence.textContent = item.en;
       targetJa.textContent = item.ja;
       targetHint.textContent = `💡 ポイント: ${item.hint}`;
-      resultCard.classList.remove("active");
-      userAudioPlayback.style.display = "none";
+      resetRecordingState();
     }
 
     nextQuestionBtn.addEventListener("click", pickRandomSentence);
 
-    // 現在の対象テキストを取得
     function getActiveTargetText() {
-      if (currentMode === "quiz") {
-        return sentenceList[currentSentenceIndex].en;
-      } else {
-        return customSentenceInput.value.trim();
-      }
+      return currentMode === "quiz" ? sentenceList[currentSentenceIndex].en : customSentenceInput.value.trim();
     }
 
-    // お手本音声の再生（ブラウザ標準TTS・API消費ゼロ）
     speakModelBtn.addEventListener("click", () => {
       const text = getActiveTargetText();
-      if (!text) {
-        alert("読み上げる英文を入力してください。");
-        return;
-      }
+      if (!text) return alert("読み上げる英文を入力してください。");
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = "en-US";
@@ -752,22 +898,13 @@
       window.speechSynthesis.speak(utter);
     });
 
-    // --- 録音処理 ---
+    // --- 録音処理（停止と判定を分離） ---
     recordBtn.addEventListener("click", async () => {
       const targetText = getActiveTargetText();
-      if (!targetText) {
-        alert("練習したい英文を入力してください。");
-        return;
-      }
-      const apiKey = apiKeyInput.value.trim();
-      if (!apiKey) {
-        alert("右上の「⚙️ 設定」からGemini APIキーを設定してください。");
-        settingsPanel.classList.add("open");
-        return;
-      }
+      if (!targetText) return alert("練習したい英文を入力してください。");
 
       if (!isRecording) {
-        startRecording();
+        await startRecording();
       } else {
         stopRecording();
       }
@@ -783,26 +920,28 @@
           if (e.data.size > 0) audioChunks.push(e.data);
         };
 
-        mediaRecorder.onstop = async () => {
-          const mimeType = mediaRecorder.mimeType || "audio/webm";
-          const audioBlob = new Blob(audioChunks, { type: mimeType });
-          const audioUrl = URL.createObjectURL(audioBlob);
+        mediaRecorder.onstop = () => {
+          latestMimeType = mediaRecorder.mimeType || "audio/webm";
+          latestAudioBlob = new Blob(audioChunks, { type: latestMimeType });
+          const audioUrl = URL.createObjectURL(latestAudioBlob);
           userAudioPlayback.src = audioUrl;
-          userAudioPlayback.style.display = "block";
 
-          // マイクストリーム停止
+          // マイク解放
           stream.getTracks().forEach(track => track.stop());
 
-          // Gemini APIで発音チェック実行
-          await evaluatePronunciation(audioBlob, mimeType);
+          // 録音完了UI表示（ここではまだAPIを呼ばない）
+          audioPreviewArea.classList.add("active");
+          judgeBtn.style.display = "inline-flex";
+          recordBtn.textContent = "🔄 録音し直す";
+          statusMsg.textContent = "録音完了！言い直したい場合は「🔄 録音し直す」、OKなら「🚀 この音声で判定する」を押してください。";
         };
 
         mediaRecorder.start();
         isRecording = true;
-        recordBtn.textContent = "⏹️ 録音ストップ（判定へ）";
+        judgeBtn.style.display = "none";
+        recordBtn.textContent = "⏹️ 録音ストップ";
         recordBtn.classList.add("recording");
-        statusMsg.textContent = "🎙️ 録音中... はっきりと、自然な繋がりを意識して読んでください";
-        resultCard.classList.remove("active");
+        statusMsg.textContent = "🎙️ 録音中... 読み終わったら「⏹️ 録音ストップ」を押してください";
       } catch (err) {
         console.error(err);
         alert("マイクへのアクセスが許可されていないか、利用できません。");
@@ -813,58 +952,75 @@
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        recordBtn.textContent = "🎤 録音スタート";
         recordBtn.classList.remove("recording");
       }
     }
 
-    // BlobをBase64文字列に変換
+    // 「🚀 この音声で判定する」ボタンを押したときだけAPI呼び出し
+    judgeBtn.addEventListener("click", async () => {
+      if (!latestAudioBlob) return;
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        alert("右上の「⚙️ 設定」からGemini APIキーを設定してください。");
+        settingsPanel.classList.add("open");
+        return;
+      }
+      await evaluatePronunciation(latestAudioBlob, latestMimeType);
+    });
+
     function blobToBase64(blob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result.split(",")[1];
-          resolve(base64String);
-        };
+        reader.onloadend = () => resolve(reader.result.split(",")[1]);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     }
 
-    // --- Gemini API 呼び出し ---
+    // --- Gemini API 高速呼び出し＆混雑時自動フォールバック ---
     async function evaluatePronunciation(audioBlob, mimeType) {
       const apiKey = apiKeyInput.value.trim();
-      const model = modelSelect.value;
-      const targetText = getActiveTargetText();
+      const primaryModel = modelSelect.value;
+      // フォールバック順序の設定
+      const modelQueue = primaryModel === "gemini-2.5-flash"
+        ? ["gemini-2.5-flash", "gemini-2.0-flash"]
+        : ["gemini-2.0-flash", "gemini-2.5-flash"];
 
-      statusMsg.textContent = "🔍 Geminiが発音と音のつながり（リンキング・脱落）を分析中...";
+      const targetText = getActiveTargetText();
+      const startTime = performance.now();
+
+      statusMsg.textContent = "⚡ 高速AI判定中...（通常2〜4秒ほどで完了します）";
+      judgeBtn.disabled = true;
       recordBtn.disabled = true;
 
       try {
         const base64Audio = await blobToBase64(audioBlob);
-        // mimeTypeからコーデック記述(;codecs=opus等)を除去してシンプルにする
         const cleanMimeType = mimeType.split(";")[0] || "audio/webm";
 
-        const systemPrompt = `あなたは日本人英語学習者専属の高度な英語発音＆音声変化（リンキング・リダクション・フラッピング・脱落）コーチです。
-ユーザーが「お手本テキスト」を読み上げた音声データを聞き、以下の観点で厳密かつ温かく分析し、指定されたJSONフォーマットのみで出力してください。
+        const systemPrompt = `あなたは実用英語の発音・音声変化（リンキング・脱落）コーチです。
+お手本テキストに対するユーザー音声を分析し、JSONで出力してください。
 
-【評価のポイント】
-1. 単語ごとの発音精度（words）:
-   - お手本テキストの単語を順番通りにすべて配列に入れてください。
-   - 子音と母音の正確さ、L/R、TH、F/V、sh/s などの区別、強勢（アクセント）の位置を判定。
-   - statusは "correct"（自然で通じる）、"needs_work"（惜しい・ややカタカナや別音に近い）、"poor"（別の単語に聞こえる・聞き取れない）の3段階。
-2. 単語間の音のつながり・脱落（sound_connections）:
-   - 隣り合う単語の間で、ネイティブらしい音声変化（子音＋母音のリンキング、破裂音t/d/p/k等の脱落・リダクション、t/dのラ行化フラッピング、同化など）が起きるべき箇所を抽出し評価してください。
-   - from_index には前の単語のインデックス番号（0始まり）を指定してください（例: 0番目の単語と1番目の単語の間のつながりなら from_index: 0）。
-   - statusは "natural"（自然につながっている／適切に音が抜けている）または "disconnected"（ブツ切りになっている／余計な母音が入っている）。
-   - phonetic_guide には「チェキラウッ」「グッモーニン」のように意識すべき音の繋がり方を分かりやすく記載してください。
-3. アドバイスはすべて日本語で、「舌をどこに当てるか」「息をどう止めるか」「どう音を繋げるか」など具体的に書いてください。`;
+【採点基準（実用・伝わりやすさ重視）】
+- ネイティブと完全に同じでなくても、英語話者に誤解なくスムーズに伝わる発音なら90〜100点をつけてください。
+- 80〜89点：十分通じるが、リンキングや特定の子音を磨くとさらに良くなるレベル。
+- 70〜79点：/r/と/l/、/θ/と/s/、母音のズレ等で別の単語に聞こえる箇所があるレベル。
+
+【分析の重点】
+1. 単語ごとの発音記号（IPA）比較:
+   - target_ipa（本来のIPA記号 例: /θɪŋk/）と actual_ipa（実際に聞こえた音のIPA記号 例: /sɪŋk/）を出力。
+   - 正しく発音できている単語（status: "correct"）の feedback は「OK」のみにし、改善が必要な単語のみ舌・唇・息の使い方を簡潔に指摘してください。
+2. 単語間のつながり（sound_connections）:
+   - リンキングや音の脱落（t/dの消失等）が起きる重要な箇所のみ抽出（from_indexは前の単語の0始まり番号）。`;
 
         const responseSchema = {
           type: "OBJECT",
           properties: {
-            overall_score: { type: "INTEGER", description: "0〜100の総合発音スコア" },
-            full_heard_as: { type: "STRING", description: "AIに実際に聞こえた英語またはカタカナ近似の書き起こし" },
+            overall_score: { type: "INTEGER" },
+            communicability: { type: "STRING", description: "例: 英語話者に一発で通じます！ / 十分通じます / 一部聞き返される可能性あり" },
+            full_heard_as: { type: "STRING", description: "AIが聞き取った英語テキスト" },
+            pillar_sound: { type: "STRING", description: "①音素（子音・母音）の要点（1〜2文で簡潔に）" },
+            pillar_linking: { type: "STRING", description: "②リンキング・脱落の要点（1〜2文で簡潔に）" },
+            pillar_breath: { type: "STRING", description: "③息の使い方・リズムの要点（1〜2文で簡潔に）" },
             words: {
               type: "ARRAY",
               items: {
@@ -872,10 +1028,11 @@
                 properties: {
                   word: { type: "STRING" },
                   status: { type: "STRING", enum: ["correct", "needs_work", "poor"] },
-                  heard_as: { type: "STRING", description: "どう聞こえたか（例: sink / アプリシエイト）" },
-                  feedback: { type: "STRING", description: "その単語の発音に対する具体的な日本語アドバイス" }
+                  target_ipa: { type: "STRING", description: "お手本のIPA発音記号（例: /tʃek/）" },
+                  actual_ipa: { type: "STRING", description: "聞こえた音のIPA発音記号" },
+                  feedback: { type: "STRING", description: "correctなら『OK』、それ以外は具体的な口・舌・息のアドバイス" }
                 },
-                required: ["word", "status", "heard_as", "feedback"]
+                required: ["word", "status", "target_ipa", "actual_ipa", "feedback"]
               }
             },
             sound_connections: {
@@ -883,71 +1040,94 @@
               items: {
                 type: "OBJECT",
                 properties: {
-                  from_index: { type: "INTEGER", description: "前の単語のインデックス（0始まり）" },
-                  between_words: { type: "STRING", description: "例: check it" },
-                  type: { type: "STRING", description: "linking / reduction / flapping / assimilation" },
+                  from_index: { type: "INTEGER" },
+                  between_words: { type: "STRING" },
                   status: { type: "STRING", enum: ["natural", "disconnected"] },
-                  phonetic_guide: { type: "STRING", description: "理想的な音の繋がり（例: チェキッ）" },
-                  feedback: { type: "STRING", description: "音の繋がりに関する具体的な日本語フィードバック" }
+                  phonetic_guide: { type: "STRING", description: "例: チェキッ" },
+                  feedback: { type: "STRING" }
                 },
-                required: ["from_index", "between_words", "type", "status", "phonetic_guide", "feedback"]
+                required: ["from_index", "between_words", "status", "phonetic_guide", "feedback"]
               }
-            },
-            general_advice: { type: "STRING", description: "全体のリズム・イントネーション・改善の最重要ポイント" }
-          },
-          required: ["overall_score", "full_heard_as", "words", "sound_connections", "general_advice"]
-        };
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-        const payload = {
-          systemInstruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: `お手本テキスト: "${targetText}"\nこの音声の発音と単語間の音のつながりを判定してください。` },
-                {
-                  inlineData: {
-                    mimeType: cleanMimeType,
-                    data: base64Audio
-                  }
-                }
-              ]
             }
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: responseSchema,
-            temperature: 0.2
-          }
+          },
+          required: ["overall_score", "communicability", "full_heard_as", "pillar_sound", "pillar_linking", "pillar_breath", "words", "sound_connections"]
         };
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+        let lastError = null;
+        let resultData = null;
+        let usedModel = "";
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error?.message || `HTTP Error ${response.status}`);
+        // モデルキューを順番に試行（503等の混雑時は即座に次のモデルへフォールバック）
+        for (const modelName of modelQueue) {
+          try {
+            usedModel = modelName;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+            const genConfig = {
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+              temperature: 0.2
+            };
+
+            // gemini-2.5-flash の場合は「思考（Thinking）」を0にして応答速度を劇的に高速化
+            if (modelName.includes("2.5-flash")) {
+              genConfig.thinkingConfig = { thinkingBudget: 0 };
+            }
+
+            const payload = {
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{
+                role: "user",
+                parts: [
+                  { text: `お手本テキスト: "${targetText}"` },
+                  { inlineData: { mimeType: cleanMimeType, data: base64Audio } }
+                ]
+              }],
+              generationConfig: genConfig
+            };
+
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              const errData = await response.json();
+              const msg = errData.error?.message || `HTTP ${response.status}`;
+              // 混雑（503）やモデル未対応（404）なら次のモデルへ自動切り替え
+              if (response.status === 503 || response.status === 429 || response.status === 404 || msg.includes("high demand")) {
+                statusMsg.textContent = `🔄 ${modelName} が混雑しているため、予備モデルで高速判定しています...`;
+                lastError = new Error(msg);
+                continue;
+              }
+              throw new Error(msg);
+            }
+
+            const data = await response.json();
+            const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!jsonText) throw new Error("解析結果が空でした。");
+
+            resultData = JSON.parse(jsonText);
+            break; // 成功したらループを抜ける
+          } catch (innerErr) {
+            lastError = innerErr;
+          }
         }
 
-        const data = await response.json();
-        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!jsonText) throw new Error("AIからの解析結果が空でした。もう一度録音してお試しください。");
+        if (!resultData) {
+          throw lastError || new Error("すべてのモデルで通信に失敗しました。");
+        }
 
-        const result = JSON.parse(jsonText);
-        renderResult(result);
-        statusMsg.textContent = "✅ 判定完了！気になる単語や連結マークをタップして確認しましょう。";
+        const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+        renderResult(resultData);
+        statusMsg.textContent = `✅ 判定完了！（${elapsed}秒 / モデル: ${usedModel}）`;
 
       } catch (err) {
         console.error(err);
         statusMsg.textContent = `❌ エラーが発生しました: ${err.message}`;
       } finally {
+        judgeBtn.disabled = false;
         recordBtn.disabled = false;
       }
     }
@@ -956,12 +1136,15 @@
     function renderResult(data) {
       resultCard.classList.add("active");
       overallScore.textContent = `${data.overall_score} 点`;
+      commBadge.textContent = data.communicability || "判定完了";
       fullHeardAs.textContent = data.full_heard_as || "--";
-      generalAdviceText.textContent = data.general_advice || "";
+
+      pillarSound.textContent = data.pillar_sound || "--";
+      pillarLinking.textContent = data.pillar_linking || "--";
+      pillarBreath.textContent = data.pillar_breath || "--";
 
       breakdownContainer.innerHTML = "";
 
-      // つながり情報を from_index で引けるようにMap化
       const connectionMap = new Map();
       if (Array.isArray(data.sound_connections)) {
         data.sound_connections.forEach(conn => {
@@ -972,17 +1155,21 @@
       let firstIssueElement = null;
 
       data.words.forEach((wObj, idx) => {
-        // 1. 単語チップ作成
         const wSpan = document.createElement("span");
         wSpan.className = `word-chip ${wObj.status}`;
-        wSpan.textContent = wObj.word;
+        wSpan.innerHTML = `<span>${wObj.word}</span><span class="word-ipa-sub">${wObj.target_ipa || ""}</span>`;
 
         wSpan.addEventListener("click", () => {
           clearSelectedChips();
           wSpan.classList.add("selected");
           const statusLabel = wObj.status === "correct" ? "⭕ クリアな発音" : (wObj.status === "needs_work" ? "🔺 あと一歩" : "❌ 要改善");
-          detailTitle.textContent = `単語: "${wObj.word}" 【${statusLabel}】 (聞こえた音: ${wObj.heard_as})`;
-          detailContent.textContent = wObj.feedback;
+          detailTitle.textContent = `単語: "${wObj.word}" 【${statusLabel}】`;
+          ipaCompareBox.style.display = "inline-flex";
+          ipaTarget.textContent = wObj.target_ipa || "--";
+          ipaActual.textContent = wObj.actual_ipa || "--";
+          detailContent.textContent = wObj.feedback === "OK"
+            ? "発音記号通りにクリアに発音できています！英語話者に問題なく通じます。"
+            : wObj.feedback;
         });
 
         breakdownContainer.appendChild(wSpan);
@@ -991,19 +1178,19 @@
           firstIssueElement = wSpan;
         }
 
-        // 2. 次の単語との間にリンキング・脱落情報があればチップを挟む
+        // 単語間のリンキング・脱落チップ
         if (connectionMap.has(idx)) {
           const conn = connectionMap.get(idx);
           const lSpan = document.createElement("span");
           lSpan.className = `link-chip ${conn.status}`;
           lSpan.textContent = conn.status === "natural" ? `🔗 ${conn.phonetic_guide}` : `⚡ ${conn.phonetic_guide}`;
-          lSpan.title = `${conn.between_words} のつながり`;
 
           lSpan.addEventListener("click", () => {
             clearSelectedChips();
             lSpan.classList.add("selected");
             const connStatus = conn.status === "natural" ? "🔗 自然なつながり！" : "⚡ 音が途切れています";
             detailTitle.textContent = `音のつながり: "${conn.between_words}" 【${connStatus}】 (目安: ${conn.phonetic_guide})`;
+            ipaCompareBox.style.display = "none";
             detailContent.textContent = conn.feedback;
           });
 
@@ -1015,7 +1202,6 @@
         }
       });
 
-      // 要改善の箇所があれば自動的に最初の1つを選択表示しておく
       if (firstIssueElement) {
         firstIssueElement.click();
       } else if (breakdownContainer.firstChild) {
