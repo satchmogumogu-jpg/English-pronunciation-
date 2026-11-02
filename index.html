@@ -109,6 +109,7 @@
       font-size: 0.75rem;
       color: var(--text-sub);
       margin-top: 4px;
+      line-height: 1.5;
     }
 
     /* モード切替タブ */
@@ -230,6 +231,11 @@
       align-items: center;
       gap: 6px;
       transition: transform 0.1s, opacity 0.2s, background 0.15s;
+    }
+
+    .btn-sm {
+      padding: 7px 13px;
+      font-size: 0.84rem;
     }
 
     .btn:active {
@@ -462,19 +468,19 @@
       border: 1px solid #fdba74;
     }
 
-    /* 詳細ポップアップボックス（IPA表示付き） */
+    /* 詳細ポップアップボックス（IPA表示＋個別練習コーナー付き） */
     .detail-box {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 12px;
+      padding: 16px;
       margin-bottom: 12px;
       font-size: 0.92rem;
     }
 
     .detail-title {
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       color: #1e3a8a;
       font-size: 1rem;
     }
@@ -493,6 +499,32 @@
 
     .ipa-target { color: #15803d; font-weight: 700; }
     .ipa-actual { color: #b91c1c; font-weight: 700; }
+
+    /* 個別ミニ練習コーナー */
+    .mini-practice-box {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #93c5fd;
+    }
+
+    .mini-practice-box.active {
+      display: block;
+    }
+
+    .mini-practice-header {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 8px;
+    }
+
+    .mini-status-msg {
+      font-size: 0.82rem;
+      color: #1e3a8a;
+      margin-top: 8px;
+      font-weight: 500;
+    }
 
     /* 採点基準アコーディオン */
     details.criteria-box {
@@ -536,7 +568,8 @@
       <label for="csvUrlInput">Googleスプレッドシート URL または CSV公開URL（任意）</label>
       <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." />
       <div class="form-help">
-        「ウェブに公開（CSV）」のURLを貼ってください。※シートの1行目（見出し）は、A列を「English」、B列を「Japanese」にしてください。
+        「ウェブに公開（CSV）」のURL、または「リンクを知っている全員が閲覧可」にしたスプレッドシートのURLを貼ってください。<br>
+        ※シートの1行目（見出し）は、A列を「English」、B列を「Japanese」にしてください。
       </div>
     </div>
     <button class="btn btn-primary" id="saveSettingsBtn">設定を保存して反映</button>
@@ -627,13 +660,13 @@
     </div>
 
     <div style="font-size:0.84rem; color:var(--text-sub); margin-bottom:6px;">
-      👇 <strong>各単語（発音記号付き）</strong> や <strong>連結マーク（🔗 / ⚡）</strong> をタップすると詳しい口の動かし方を表示します
+      👇 <strong>各単語（発音記号付き）</strong> や <strong>連結マーク（🔗 / ⚡）</strong> をタップすると詳しい解説＆<strong>その部分だけの個別練習</strong>ができます
     </div>
 
     <!-- 単語＆リンキングのチップ並び -->
     <div class="interactive-Breakdown" id="breakdownContainer"></div>
 
-    <!-- タップ詳細表示枠（IPA対比つき） -->
+    <!-- タップ詳細表示枠（IPA対比＋個別ミニ練習コーナーつき） -->
     <div class="detail-box" id="detailBox">
       <div class="detail-title" id="detailTitle">気になる単語や連結マークをタップしてください</div>
       <div class="ipa-compare" id="ipaCompareBox" style="display:none;">
@@ -642,6 +675,21 @@
         <span>聞こえた音: <strong class="ipa-actual" id="ipaActual">--</strong></span>
       </div>
       <div id="detailContent">各単語の発音記号（IPA）のズレや、リンキングの具体的なコツがここに表示されます。</div>
+
+      <!-- 選択した単語・連結だけの個別練習コーナー -->
+      <div class="mini-practice-box" id="miniPracticeBox">
+        <div class="mini-practice-header" id="miniPracticeHeader">🎯 この部分だけを個別練習</div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-secondary" id="miniSpeakBtn">🔊 部分お手本</button>
+          <button class="btn btn-sm btn-record" id="miniRecordBtn">🎤 部分録音</button>
+          <button class="btn btn-sm btn-judge" id="miniJudgeBtn" style="display:none;">🚀 この部分を判定</button>
+        </div>
+        <div class="audio-preview-area" id="miniAudioPreviewArea" style="margin-top:8px; padding:6px 10px; background:#ffffff;">
+          <span style="font-size:0.78rem; font-weight:600; color:var(--text-sub);">🎧 確認:</span>
+          <audio id="miniAudioPlayback" class="audio-playback" controls style="height:30px;"></audio>
+        </div>
+        <div class="mini-status-msg" id="miniStatusMsg">ボタンを押してこの部分だけ録音・チェックできます（省トークン判定）</div>
+      </div>
     </div>
   </div>
 
@@ -686,7 +734,7 @@
       }
     ];
 
-    // --- 状態管理 ---
+    // --- 全体用の状態管理 ---
     let sentenceList = [...DEFAULT_SENTENCES];
     let currentSentenceIndex = 0;
     let currentMode = "quiz";
@@ -695,6 +743,14 @@
     let isRecording = false;
     let latestAudioBlob = null;
     let latestMimeType = "audio/webm";
+
+    // --- 個別（単語・連結）練習用の状態管理 ---
+    let selectedFocus = null; // { type: 'word' | 'link', text: string, dataObj: object, chipEl: HTMLElement }
+    let miniMediaRecorder = null;
+    let miniAudioChunks = [];
+    let isMiniRecording = false;
+    let latestMiniAudioBlob = null;
+    let latestMiniMimeType = "audio/webm";
 
     // --- DOM要素 ---
     const toggleSettingsBtn = document.getElementById("toggleSettingsBtn");
@@ -738,11 +794,20 @@
     const ipaActual = document.getElementById("ipaActual");
     const detailContent = document.getElementById("detailContent");
 
+    // 個別練習DOM
+    const miniPracticeBox = document.getElementById("miniPracticeBox");
+    const miniPracticeHeader = document.getElementById("miniPracticeHeader");
+    const miniSpeakBtn = document.getElementById("miniSpeakBtn");
+    const miniRecordBtn = document.getElementById("miniRecordBtn");
+    const miniJudgeBtn = document.getElementById("miniJudgeBtn");
+    const miniAudioPreviewArea = document.getElementById("miniAudioPreviewArea");
+    const miniAudioPlayback = document.getElementById("miniAudioPlayback");
+    const miniStatusMsg = document.getElementById("miniStatusMsg");
+
     // --- 初期化 ---
     window.addEventListener("DOMContentLoaded", async () => {
       const savedKey = localStorage.getItem("gemini_api_key") || "";
       let savedModel = localStorage.getItem("gemini_model") || "gemini-3.8-flash";
-      // 古いモデル名が保存されていた場合は自動で最新モデルに移行
       if (savedModel !== "gemini-3.8-flash" && savedModel !== "gemini-2.5-flash") {
         savedModel = "gemini-3.8-flash";
         localStorage.setItem("gemini_model", savedModel);
@@ -781,7 +846,7 @@
       pickRandomSentence();
     });
 
-    // スプレッドシート読み込み（通常のURL＆CSV公開URLの両対応）
+    // スプレッドシート読み込み
     async function loadSentencesFromCSV(rawUrl) {
       try {
         statusMsg.textContent = "スプレッドシートから例文を読み込み中...";
@@ -864,12 +929,24 @@
     });
 
     function resetRecordingState() {
+      if (isRecording) stopRecording();
+      if (isMiniRecording) stopMiniRecording();
       latestAudioBlob = null;
       judgeBtn.style.display = "none";
       audioPreviewArea.classList.remove("active");
       resultCard.classList.remove("active");
+      miniPracticeBox.classList.remove("active");
       recordBtn.textContent = "🎤 録音スタート";
       statusMsg.textContent = "「🎤 録音スタート」を押して英文を読み上げてください";
+    }
+
+    function resetMiniRecordingState() {
+      if (isMiniRecording) stopMiniRecording();
+      latestMiniAudioBlob = null;
+      miniJudgeBtn.style.display = "none";
+      miniAudioPreviewArea.classList.remove("active");
+      miniRecordBtn.textContent = "🎤 部分録音";
+      miniStatusMsg.textContent = "「🎤 部分録音」を押して、この部分だけ声に出して練習できます";
     }
 
     function pickRandomSentence() {
@@ -893,22 +970,28 @@
       return currentMode === "quiz" ? sentenceList[currentSentenceIndex].en : customSentenceInput.value.trim();
     }
 
-    speakModelBtn.addEventListener("click", () => {
-      const text = getActiveTargetText();
-      if (!text) return alert("読み上げる英文を入力してください。");
+    function speakText(text, rate = 0.95) {
+      if (!text) return;
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = "en-US";
-      utter.rate = 0.95;
+      utter.rate = rate;
       window.speechSynthesis.speak(utter);
+    }
+
+    speakModelBtn.addEventListener("click", () => {
+      const text = getActiveTargetText();
+      if (!text) return alert("読み上げる英文を入力してください。");
+      speakText(text, 0.95);
     });
 
-    // --- 録音処理（停止と判定を分離） ---
+    // --- 文全体の録音処理（停止と判定を分離） ---
     recordBtn.addEventListener("click", async () => {
       const targetText = getActiveTargetText();
       if (!targetText) return alert("練習したい英文を入力してください。");
 
       if (!isRecording) {
+        if (isMiniRecording) stopMiniRecording();
         await startRecording();
       } else {
         stopRecording();
@@ -928,17 +1011,13 @@
         mediaRecorder.onstop = () => {
           latestMimeType = mediaRecorder.mimeType || "audio/webm";
           latestAudioBlob = new Blob(audioChunks, { type: latestMimeType });
-          const audioUrl = URL.createObjectURL(latestAudioBlob);
-          userAudioPlayback.src = audioUrl;
-
-          // マイク解放
+          userAudioPlayback.src = URL.createObjectURL(latestAudioBlob);
           stream.getTracks().forEach(track => track.stop());
 
-          // 録音完了UI表示（ここではまだAPIを呼ばない）
           audioPreviewArea.classList.add("active");
           judgeBtn.style.display = "inline-flex";
           recordBtn.textContent = "🔄 録音し直す";
-          statusMsg.textContent = "録音完了！言い直したい場合は「🔄 録音し直す」、OKなら「🚀 この音声で判定する」を押してください。";
+          statusMsg.textContent = "録音完了！言い直す場合は「🔄 録音し直す」、OKなら「🚀 この音声で判定する」を押してください。";
         };
 
         mediaRecorder.start();
@@ -961,7 +1040,6 @@
       }
     }
 
-    // 「🚀 この音声で判定する」ボタンを押したときだけAPI呼び出し
     judgeBtn.addEventListener("click", async () => {
       if (!latestAudioBlob) return;
       const apiKey = apiKeyInput.value.trim();
@@ -973,6 +1051,75 @@
       await evaluatePronunciation(latestAudioBlob, latestMimeType);
     });
 
+    // --- 個別（単語・連結チップ）の録音・判定処理 ---
+    miniSpeakBtn.addEventListener("click", () => {
+      if (!selectedFocus) return;
+      speakText(selectedFocus.text, 0.85); // 部分確認しやすいよう少しゆっくり再生
+    });
+
+    miniRecordBtn.addEventListener("click", async () => {
+      if (!selectedFocus) return;
+      if (!isMiniRecording) {
+        if (isRecording) stopRecording();
+        await startMiniRecording();
+      } else {
+        stopMiniRecording();
+      }
+    });
+
+    async function startMiniRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        miniMediaRecorder = new MediaRecorder(stream);
+        miniAudioChunks = [];
+
+        miniMediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) miniAudioChunks.push(e.data);
+        };
+
+        miniMediaRecorder.onstop = () => {
+          latestMiniMimeType = miniMediaRecorder.mimeType || "audio/webm";
+          latestMiniAudioBlob = new Blob(miniAudioChunks, { type: latestMiniMimeType });
+          miniAudioPlayback.src = URL.createObjectURL(latestMiniAudioBlob);
+          stream.getTracks().forEach(track => track.stop());
+
+          miniAudioPreviewArea.classList.add("active");
+          miniJudgeBtn.style.display = "inline-flex";
+          miniRecordBtn.textContent = "🔄 部分録り直し";
+          miniStatusMsg.textContent = "部分録音完了！納得いく発音なら「🚀 この部分を判定」を押してください。";
+        };
+
+        miniMediaRecorder.start();
+        isMiniRecording = true;
+        miniJudgeBtn.style.display = "none";
+        miniRecordBtn.textContent = "⏹️ ストップ";
+        miniRecordBtn.classList.add("recording");
+        miniStatusMsg.textContent = `🎙️ "${selectedFocus.text}" を録音中... 読み終えたら「⏹️ ストップ」を押してください`;
+      } catch (err) {
+        console.error(err);
+        alert("マイクへのアクセスが許可されていないか、利用できません。");
+      }
+    }
+
+    function stopMiniRecording() {
+      if (miniMediaRecorder && isMiniRecording) {
+        miniMediaRecorder.stop();
+        isMiniRecording = false;
+        miniRecordBtn.classList.remove("recording");
+      }
+    }
+
+    miniJudgeBtn.addEventListener("click", async () => {
+      if (!latestMiniAudioBlob || !selectedFocus) return;
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        alert("右上の「⚙️ 設定」からGemini APIキーを設定してください。");
+        settingsPanel.classList.add("open");
+        return;
+      }
+      await evaluateMiniFocus(latestMiniAudioBlob, latestMiniMimeType);
+    });
+
     function blobToBase64(blob) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -982,15 +1129,71 @@
       });
     }
 
-    // --- Gemini API 高速呼び出し＆混雑時自動フォールバック ---
-    async function evaluatePronunciation(audioBlob, mimeType) {
+    // --- Gemini API 共通リクエスト関数（フォールバック＆思考オフ対応） ---
+    async function callGeminiAPI(systemPrompt, userText, base64Audio, cleanMimeType, responseSchema, onFallbackMsg) {
       const apiKey = apiKeyInput.value.trim();
       const primaryModel = modelSelect.value;
-      // 最新モデル（3.8-flash / 2.5-flash）でのフォールバック順序設定
       const modelQueue = primaryModel === "gemini-3.8-flash"
         ? ["gemini-3.8-flash", "gemini-2.5-flash"]
         : ["gemini-2.5-flash", "gemini-3.8-flash"];
 
+      let lastError = null;
+
+      for (const modelName of modelQueue) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          const genConfig = {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+            temperature: 0.2
+          };
+          if (modelName.includes("2.5-flash")) {
+            genConfig.thinkingConfig = { thinkingBudget: 0 };
+          }
+
+          const payload = {
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{
+              role: "user",
+              parts: [
+                { text: userText },
+                { inlineData: { mimeType: cleanMimeType, data: base64Audio } }
+              ]
+            }],
+            generationConfig: genConfig
+          };
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            const msg = errData.error?.message || `HTTP ${response.status}`;
+            if (response.status === 503 || response.status === 429 || response.status === 404 || msg.includes("high demand") || msg.includes("no longer available")) {
+              if (onFallbackMsg) onFallbackMsg(modelName);
+              lastError = new Error(msg);
+              continue;
+            }
+            throw new Error(msg);
+          }
+
+          const data = await response.json();
+          const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!jsonText) throw new Error("解析結果が空でした。");
+
+          return { resultData: JSON.parse(jsonText), usedModel: modelName };
+        } catch (innerErr) {
+          lastError = innerErr;
+        }
+      }
+      throw lastError || new Error("すべてのモデルで通信に失敗しました。");
+    }
+
+    // --- 文全体の判定 ---
+    async function evaluatePronunciation(audioBlob, mimeType) {
       const targetText = getActiveTargetText();
       const startTime = performance.now();
 
@@ -1021,11 +1224,11 @@
           type: "OBJECT",
           properties: {
             overall_score: { type: "INTEGER" },
-            communicability: { type: "STRING", description: "例: 英語話者に一発で通じます！ / 十分通じます / 一部聞き返される可能性あり" },
-            full_heard_as: { type: "STRING", description: "AIが聞き取った英語テキスト" },
-            pillar_sound: { type: "STRING", description: "①音素（子音・母音）の要点（1〜2文で簡潔に）" },
-            pillar_linking: { type: "STRING", description: "②リンキング・脱落の要点（1〜2文で簡潔に）" },
-            pillar_breath: { type: "STRING", description: "③息の使い方・リズムの要点（1〜2文で簡潔に）" },
+            communicability: { type: "STRING" },
+            full_heard_as: { type: "STRING" },
+            pillar_sound: { type: "STRING" },
+            pillar_linking: { type: "STRING" },
+            pillar_breath: { type: "STRING" },
             words: {
               type: "ARRAY",
               items: {
@@ -1033,9 +1236,9 @@
                 properties: {
                   word: { type: "STRING" },
                   status: { type: "STRING", enum: ["correct", "needs_work", "poor"] },
-                  target_ipa: { type: "STRING", description: "お手本のIPA発音記号（例: /tʃek/）" },
-                  actual_ipa: { type: "STRING", description: "聞こえた音のIPA発音記号" },
-                  feedback: { type: "STRING", description: "correctなら『OK』、それ以外は具体的な口・舌・息のアドバイス" }
+                  target_ipa: { type: "STRING" },
+                  actual_ipa: { type: "STRING" },
+                  feedback: { type: "STRING" }
                 },
                 required: ["word", "status", "target_ipa", "actual_ipa", "feedback"]
               }
@@ -1048,7 +1251,7 @@
                   from_index: { type: "INTEGER" },
                   between_words: { type: "STRING" },
                   status: { type: "STRING", enum: ["natural", "disconnected"] },
-                  phonetic_guide: { type: "STRING", description: "例: チェキッ" },
+                  phonetic_guide: { type: "STRING" },
                   feedback: { type: "STRING" }
                 },
                 required: ["from_index", "between_words", "status", "phonetic_guide", "feedback"]
@@ -1058,82 +1261,124 @@
           required: ["overall_score", "communicability", "full_heard_as", "pillar_sound", "pillar_linking", "pillar_breath", "words", "sound_connections"]
         };
 
-        let lastError = null;
-        let resultData = null;
-        let usedModel = "";
-
-        // モデルキューを順番に試行（503等の混雑時は即座に次のモデルへフォールバック）
-        for (const modelName of modelQueue) {
-          try {
-            usedModel = modelName;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-            const genConfig = {
-              responseMimeType: "application/json",
-              responseSchema: responseSchema,
-              temperature: 0.2
-            };
-
-            // gemini-2.5-flash の場合は「思考（Thinking）」を0にして応答速度を高速化
-            if (modelName.includes("2.5-flash")) {
-              genConfig.thinkingConfig = { thinkingBudget: 0 };
-            }
-
-            const payload = {
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              contents: [{
-                role: "user",
-                parts: [
-                  { text: `お手本テキスト: "${targetText}"` },
-                  { inlineData: { mimeType: cleanMimeType, data: base64Audio } }
-                ]
-              }],
-              generationConfig: genConfig
-            };
-
-            const response = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-              const errData = await response.json();
-              const msg = errData.error?.message || `HTTP ${response.status}`;
-              // 混雑（503/429）やモデル未対応（404）なら次のモデルへ自動切り替え
-              if (response.status === 503 || response.status === 429 || response.status === 404 || msg.includes("high demand") || msg.includes("no longer available")) {
-                statusMsg.textContent = `🔄 ${modelName} から予備モデルへ自動で切り替えて判定しています...`;
-                lastError = new Error(msg);
-                continue;
-              }
-              throw new Error(msg);
-            }
-
-            const data = await response.json();
-            const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!jsonText) throw new Error("解析結果が空でした。");
-
-            resultData = JSON.parse(jsonText);
-            break; // 成功したらループを抜ける
-          } catch (innerErr) {
-            lastError = innerErr;
-          }
-        }
-
-        if (!resultData) {
-          throw lastError || new Error("すべてのモデルで通信に失敗しました。");
-        }
+        const { resultData, usedModel } = await callGeminiAPI(
+          systemPrompt,
+          `お手本テキスト: "${targetText}"`,
+          base64Audio,
+          cleanMimeType,
+          responseSchema,
+          (m) => { statusMsg.textContent = `🔄 ${m} から予備モデルへ自動で切り替えて判定しています...`; }
+        );
 
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
         renderResult(resultData);
         statusMsg.textContent = `✅ 判定完了！（${elapsed}秒 / モデル: ${usedModel}）`;
-
       } catch (err) {
         console.error(err);
         statusMsg.textContent = `❌ エラーが発生しました: ${err.message}`;
       } finally {
         judgeBtn.disabled = false;
         recordBtn.disabled = false;
+      }
+    }
+
+    // --- 個別（単語・連結チップ）の超省トークン判定 ---
+    async function evaluateMiniFocus(audioBlob, mimeType) {
+      if (!selectedFocus) return;
+      const startTime = performance.now();
+
+      miniStatusMsg.textContent = "⚡ 部分判定中...（1〜2秒で完了します）";
+      miniJudgeBtn.disabled = true;
+      miniRecordBtn.disabled = true;
+
+      try {
+        const base64Audio = await blobToBase64(audioBlob);
+        const cleanMimeType = mimeType.split(";")[0] || "audio/webm";
+
+        if (selectedFocus.type === "word") {
+          const systemPrompt = `英単語1語の発音判定コーチです。ユーザーの音声を聞き、目標単語の発音記号（target_ipa）と実際に聞こえた発音記号（actual_ipa）を比較してJSON出力してください。英語話者に通じる発音ならstatusは"correct"にしてください。`;
+          const schema = {
+            type: "OBJECT",
+            properties: {
+              status: { type: "STRING", enum: ["correct", "needs_work", "poor"] },
+              target_ipa: { type: "STRING" },
+              actual_ipa: { type: "STRING" },
+              feedback: { type: "STRING", description: "1〜2文で簡潔に口・舌・息のアドバイス（OKなら褒める）" }
+            },
+            required: ["status", "target_ipa", "actual_ipa", "feedback"]
+          };
+
+          const { resultData, usedModel } = await callGeminiAPI(
+            systemPrompt,
+            `目標単語: "${selectedFocus.text}"`,
+            base64Audio,
+            cleanMimeType,
+            schema
+          );
+
+          // データとチップ表示をリアルタイム更新
+          const wObj = selectedFocus.dataObj;
+          wObj.status = resultData.status;
+          wObj.target_ipa = resultData.target_ipa || wObj.target_ipa;
+          wObj.actual_ipa = resultData.actual_ipa;
+          wObj.feedback = resultData.feedback;
+
+          selectedFocus.chipEl.className = `word-chip ${wObj.status} selected`;
+          selectedFocus.chipEl.innerHTML = `<span>${wObj.word}</span><span class="word-ipa-sub">${wObj.target_ipa || ""}</span>`;
+
+          const statusLabel = wObj.status === "correct" ? "⭕ クリアな発音！" : (wObj.status === "needs_work" ? "🔺 あと一歩" : "❌ 要改善");
+          detailTitle.textContent = `単語: "${wObj.word}" 【${statusLabel}】`;
+          ipaCompareBox.style.display = "inline-flex";
+          ipaTarget.textContent = wObj.target_ipa || "--";
+          ipaActual.textContent = wObj.actual_ipa || "--";
+          detailContent.textContent = wObj.feedback;
+
+          const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+          miniStatusMsg.textContent = `✅ 部分判定完了！（${elapsed}秒 / ${usedModel}）`;
+
+        } else {
+          // 連結チップ（link）の判定
+          const systemPrompt = `英語のリンキング・脱落（音声変化）コーチです。指定フレーズの音のつながりが自然か判定しJSON出力してください。スムーズに繋がっていればstatusは"natural"にしてください。`;
+          const schema = {
+            type: "OBJECT",
+            properties: {
+              status: { type: "STRING", enum: ["natural", "disconnected"] },
+              phonetic_guide: { type: "STRING" },
+              feedback: { type: "STRING", description: "1〜2文で音の繋げ方・脱落のアドバイス（OKなら褒める）" }
+            },
+            required: ["status", "phonetic_guide", "feedback"]
+          };
+
+          const { resultData, usedModel } = await callGeminiAPI(
+            systemPrompt,
+            `目標連結フレーズ: "${selectedFocus.text}"`,
+            base64Audio,
+            cleanMimeType,
+            schema
+          );
+
+          const conn = selectedFocus.dataObj;
+          conn.status = resultData.status;
+          conn.phonetic_guide = resultData.phonetic_guide || conn.phonetic_guide;
+          conn.feedback = resultData.feedback;
+
+          selectedFocus.chipEl.className = `link-chip ${conn.status} selected`;
+          selectedFocus.chipEl.textContent = conn.status === "natural" ? `🔗 ${conn.phonetic_guide}` : `⚡ ${conn.phonetic_guide}`;
+
+          const connStatus = conn.status === "natural" ? "🔗 自然なつながり！" : "⚡ 音が途切れています";
+          detailTitle.textContent = `音のつながり: "${conn.between_words}" 【${connStatus}】 (目安: ${conn.phonetic_guide})`;
+          ipaCompareBox.style.display = "none";
+          detailContent.textContent = conn.feedback;
+
+          const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+          miniStatusMsg.textContent = `✅ 連結判定完了！（${elapsed}秒 / ${usedModel}）`;
+        }
+      } catch (err) {
+        console.error(err);
+        miniStatusMsg.textContent = `❌ 部分判定エラー: ${err.message}`;
+      } finally {
+        miniJudgeBtn.disabled = false;
+        miniRecordBtn.disabled = false;
       }
     }
 
@@ -1175,6 +1420,12 @@
           detailContent.textContent = wObj.feedback === "OK"
             ? "発音記号通りにクリアに発音できています！英語話者に問題なく通じます。"
             : wObj.feedback;
+
+          // 個別練習コーナーをこの単語用にセット
+          selectedFocus = { type: "word", text: wObj.word, dataObj: wObj, chipEl: wSpan };
+          miniPracticeBox.classList.add("active");
+          miniPracticeHeader.textContent = `🎯 単語 "${wObj.word}" だけを個別練習`;
+          resetMiniRecordingState();
         });
 
         breakdownContainer.appendChild(wSpan);
@@ -1197,6 +1448,12 @@
             detailTitle.textContent = `音のつながり: "${conn.between_words}" 【${connStatus}】 (目安: ${conn.phonetic_guide})`;
             ipaCompareBox.style.display = "none";
             detailContent.textContent = conn.feedback;
+
+            // 個別練習コーナーをこの連結フレーズ用にセット
+            selectedFocus = { type: "link", text: conn.between_words, dataObj: conn, chipEl: lSpan };
+            miniPracticeBox.classList.add("active");
+            miniPracticeHeader.textContent = `🎯 連結 "${conn.between_words}" （${conn.phonetic_guide}）だけを個別練習`;
+            resetMiniRecordingState();
           });
 
           breakdownContainer.appendChild(lSpan);
